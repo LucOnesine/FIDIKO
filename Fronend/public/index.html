@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FIDIKO - Solution de Vote Local & Distant Sécurisée</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- FontAwesome & Socket.io CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="brand" id="brandHomeBtn" style="cursor: pointer;">
+      <i class="fa-solid fa-check-to-slot" style="color: #06D6A0;"></i>
+      FIDIKO
+      <span class="brand-badge" id="appRoleBadge">Mode Visiteur</span>
+    </div>
+    <div class="nav-actions">
+      <button class="theme-toggle-btn" id="themeToggleBtn" title="Changer le thème">
+        <i class="fa-solid fa-sun" id="themeIcon"></i>
+        <span id="themeLabel">Mode Clair</span>
+      </button>
+      <button class="btn btn-outline" id="navAuthBtn">
+        <i class="fa-solid fa-user"></i> S'authentifier
+      </button>
+      <button class="btn btn-outline" id="logoutBtn" style="display: none;">
+        <i class="fa-solid fa-sign-out-alt"></i> Déconnexion
+      </button>
+    </div>
+  </nav>
+
+  <!-- APP CONTAINER -->
+  <main class="app-container">
+
+    <!-- 1. LANDING PAGE / PAGE D'ACCUEIL AVEC DESCRIPTION -->
+    <section id="landingSection">
+      <!-- Hero Banner -->
+      <div class="card" style="text-align: center; padding: 3.5rem 2rem; background: linear-gradient(135deg, var(--navy-dark), var(--navy-light)); border: 1px solid var(--navy-border); margin-bottom: 2rem;">
+        <div style="display: inline-block; padding: 0.5rem 1.2rem; background: rgba(6, 214, 160, 0.15); color: #06D6A0; border-radius: 30px; font-weight: 700; font-size: 0.9rem; margin-bottom: 1rem;">
+          <i class="fa-solid fa-shield-halved"></i> Appairage Sécurisé & Processus d'Association Isoloir
+        </div>
+        <h1 style="font-size: 2.8rem; font-weight: 900; margin-bottom: 1rem; color: var(--accent-white); line-height: 1.2;">
+          FIDIKO : Contrôle d'Appairage Multi-Isoloirs
+        </h1>
+        <p style="font-size: 1.15rem; color: var(--text-sub); max-width: 750px; margin: 0 auto 2rem auto; line-height: 1.6;">
+          Validation d'association en temps réel avant d'autoriser un terminal à servir d'isoloir. L'Admin accepte ou refuse chaque appareil et déverrouille l'isoloir pour chaque électeur.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+          <button class="btn btn-primary" id="landingLoginBtn" style="padding: 0.9rem 2rem; font-size: 1.05rem;">
+            <i class="fa-solid fa-right-to-bracket"></i> S'authentifier (Admin)
+          </button>
+          <button class="btn btn-success" id="landingRegisterBtn" style="padding: 0.9rem 2rem; font-size: 1.05rem;">
+            <i class="fa-solid fa-user-plus"></i> Créer un Compte Admin
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Join Room par Code -->
+      <div class="card" style="text-align: center;">
+        <h2 class="card-title" style="justify-content: center;"><i class="fa-solid fa-mobile-screen"></i> Demande d'Association Isoloir Physique</h2>
+        <p style="color: var(--text-sub); margin-bottom: 1.25rem;">Saisissez le code du salon pour envoyer une demande d'appairage à l'Admin :</p>
+        <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; max-width: 500px; margin: 0 auto;">
+          <input type="text" id="guestRoomCode" class="form-control" placeholder="Code du salon (ex: 829147)" style="text-align: center; font-size: 1.2rem; font-weight: 700; letter-spacing: 2px;">
+          <button id="joinRoomBtn" class="btn btn-primary"><i class="fa-solid fa-key"></i> Demander l'Appairage</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. PANNEAU AUTHENTIFICATION -->
+    <section id="authSection" class="grid-2" style="display: none;">
+      <!-- Connexion -->
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 class="card-title" style="margin-bottom: 0;"><i class="fa-solid fa-lock"></i> Connexion Admin</h2>
+          <button class="btn btn-outline close-auth-btn" style="padding: 0.3rem 0.6rem;"><i class="fa-solid fa-times"></i></button>
+        </div>
+        <form id="loginForm">
+          <div class="form-group">
+            <label for="loginEmail">Adresse E-mail</label>
+            <input type="email" id="loginEmail" class="form-control" placeholder="admin@fidiko.org" required>
+          </div>
+          <div class="form-group">
+            <label for="loginPassword">Mot de passe</label>
+            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Se Connecter au Dashboard Admin</button>
+        </form>
+      </div>
+
+      <!-- Inscription -->
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 class="card-title" style="margin-bottom: 0;"><i class="fa-solid fa-user-plus"></i> Créer un Compte Admin</h2>
+          <button class="btn btn-outline close-auth-btn" style="padding: 0.3rem 0.6rem;"><i class="fa-solid fa-times"></i></button>
+        </div>
+        <form id="registerForm">
+          <div class="form-group">
+            <label for="regName">Nom Complet</label>
+            <input type="text" id="regName" class="form-control" placeholder="Président du Scrutin" required>
+          </div>
+          <div class="form-group">
+            <label for="regEmail">Adresse E-mail</label>
+            <input type="email" id="regEmail" class="form-control" placeholder="admin@fidiko.org" required>
+          </div>
+          <div class="form-group">
+            <label for="regPassword">Mot de passe</label>
+            <input type="password" id="regPassword" class="form-control" placeholder="••••••••" required>
+          </div>
+          <div class="form-group">
+            <label for="regRole">Rôle</label>
+            <select id="regRole" class="form-control">
+              <option value="admin">Administrateur de Salon</option>
+              <option value="voter">Électeur / Votant</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-success btn-full">Créer mon compte Admin</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- 3. DASHBOARD ADMINISTRATEUR (PANNEAU DE CONTRÔLE MULTI-ISOLOIRS) -->
+    <section id="adminDashboardSection" style="display: none;">
+      <!-- Header Admin -->
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h2 id="adminWelcomeTitle" style="font-size: 1.6rem; font-weight: 800;">Tableau de Bord Administrateur</h2>
+            <p id="adminUserEmail" style="color: var(--text-sub);">Panneau de Contrôle Multi-Isoloirs & Validation d'Appairage</p>
+          </div>
+          <button id="openCreateRoomBtn" class="btn btn-success">
+            <i class="fa-solid fa-plus-circle"></i> Créer un nouveau Salon de Vote
+          </button>
+        </div>
+
+        <!-- Formulaire création salon -->
+        <div id="createRoomFormContainer" style="display: none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+          <h3 class="card-title"><i class="fa-solid fa-folder-plus"></i> Nouveau Salon dans PostgreSQL</h3>
+          <form id="createRoomForm">
+            <div class="form-group">
+              <label for="roomTitleInput">Titre du Scrutin</label>
+              <input type="text" id="roomTitleInput" class="form-control" placeholder="ex: Élection Présidentielle 2026" required>
+            </div>
+            <div class="form-group">
+              <label for="roomDescInput">Description / Remarques</label>
+              <textarea id="roomDescInput" class="form-control" rows="2" placeholder="Description du scrutin..."></textarea>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Activer & Générer le Salon</button>
+              <button type="button" id="cancelCreateRoomBtn" class="btn btn-outline">Annuler</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Salon Actif -->
+      <div id="adminRoomDetailsView" style="display: none;">
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <h2 id="adminRoomTitle" style="font-size: 1.5rem; font-weight: 800;">Salon Actif</h2>
+                <span id="adminRoomStatusBadge" style="padding: 0.25rem 0.75rem; border-radius: 20px; font-weight: 700; font-size: 0.8rem; text-transform: uppercase;">
+                  Brouillon
+                </span>
+              </div>
+              <p id="adminRoomCode" style="color: var(--text-sub); margin-top: 0.4rem;">Code d'accès pour l'appairage : <strong style="color: var(--status-success); font-size: 1.2rem;">------</strong></p>
+            </div>
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+              <button id="activateRoomBtn" class="btn btn-success">
+                <i class="fa-solid fa-play"></i> Ouvrir / Activer le Scrutin
+              </button>
+              <button id="closeRoomBtn" class="btn btn-danger">
+                <i class="fa-solid fa-stop-circle"></i> Clôturer & Cérémonie (10s)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ZONE DE NOTIFICATION DES DEMANDES D'APPAIRAGE EN ATTENTE (LIVE HANDSHAKE) -->
+        <div id="adminPendingAssociationsContainer" class="card" style="margin-bottom: 1.5rem; border: 2px dashed #FFD166; background: rgba(255, 209, 102, 0.05); display: none;">
+          <h3 class="card-title" style="color: #FFD166;"><i class="fa-solid fa-bell"></i> Demandes d'Association d'Isoloirs en Attente</h3>
+          <p style="color: var(--text-sub); margin-bottom: 1rem;">Les appareils suivants demandent l'autorisation de rejoindre ce salon en tant qu'Isoloirs :</p>
+          <div id="adminPendingAssociationsList">
+            <!-- Rempli dynamiquement par JS -->
+          </div>
+        </div>
+
+        <!-- Counter Box -->
+        <div class="grid-2">
+          <div class="card" style="text-align: center; background: linear-gradient(135deg, var(--navy-light), var(--navy-dark));">
+            <i class="fa-solid fa-box-archive" style="font-size: 2.5rem; color: #06D6A0; margin-bottom: 0.5rem;"></i>
+            <h3 style="font-size: 1rem; color: var(--text-sub); text-transform: uppercase;">Total Bulletins Enregistrés BDD</h3>
+            <div id="liveGlobalVoteCount" style="font-size: 4rem; font-weight: 900; color: var(--accent-white);">0</div>
+            <p style="font-size: 0.85rem; color: #06D6A0;"><i class="fa-solid fa-shield-halved"></i> Secrets des urnes préservé en BDD</p>
+          </div>
+
+          <!-- Formulaire candidat -->
+          <div class="card">
+            <h3 class="card-title"><i class="fa-solid fa-user-plus"></i> Ajouter un Candidat Réel</h3>
+            <form id="addCandidateForm">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div class="form-group">
+                  <input type="text" id="candFirstName" class="form-control" placeholder="Prénom" required>
+                </div>
+                <div class="form-group">
+                  <input type="text" id="candLastName" class="form-control" placeholder="Nom" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <input type="text" id="candParty" class="form-control" placeholder="Parti politique / Organisation">
+              </div>
+              <div style="display: flex; gap: 0.75rem;">
+                <input type="color" id="candColor" class="form-control" value="#1C2541" style="width: 60px; padding: 0.2rem;" title="Code couleur UI">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">Ajouter au scrutin</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- PANNEAU DE CONTRÔLE MULTI-ISOLOIRS EN TEMPS RÉEL -->
+        <div class="card" style="margin-top: 1.5rem; border: 2px solid var(--status-success);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 1rem;">
+            <h3 class="card-title" style="margin-bottom: 0;">
+              <i class="fa-solid fa-tower-broadcast" style="color: #06D6A0;"></i> Isoloirs Valides & Contrôle par Appareil
+            </h3>
+            <span style="font-size: 0.85rem; background: rgba(6,214,160,0.15); color: #06D6A0; padding: 0.3rem 0.8rem; border-radius: 20px; font-weight: 700;">
+              <i class="fa-solid fa-shield-check"></i> Handshake & WebSockets Actifs
+            </span>
+          </div>
+          <p style="color: var(--text-sub); margin-bottom: 1.25rem;">
+            Seuls les appareils validés apparaissent ici. Déverrouillez chaque isoloir pour 1 vote à la fois.
+          </p>
+          
+          <div id="adminConnectedDevicesList">
+            <!-- Liste dynamique des isoloirs -->
+          </div>
+        </div>
+
+        <!-- Liste des candidats -->
+        <div class="card" style="margin-top: 1.5rem;">
+          <h3 class="card-title"><i class="fa-solid fa-users"></i> Candidats Enregistrés & Disqualification Temps Réel</h3>
+          <div id="adminCandidatesList">
+            <!-- Chargé dynamiquement -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Mes Salons -->
+      <div id="myRoomsListContainer" class="card" style="margin-top: 1.5rem;">
+        <h3 class="card-title"><i class="fa-solid fa-list-check"></i> Vos Salons de Vote Enregistrés</h3>
+        <div id="myRoomsList">
+          <p style="color: var(--text-sub);">Chargement de vos salons...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. MODE ISOLOIR SÉCURISÉ / VOTE DISTANT -->
+    <section id="voterBoothSection" style="display: none;">
+      <!-- Identifiant du terminal -->
+      <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+        <span id="terminalDeviceLabel" style="font-size: 1.1rem; font-weight: 800; color: var(--accent-white); background: var(--navy-light); padding: 0.5rem 1rem; border-radius: 12px; border: 1px solid var(--border-color);">
+          <i class="fa-solid fa-mobile-screen-button" style="color: #06D6A0;"></i> Isoloir Physique
+        </span>
+        <span id="terminalStatusBadge" style="padding: 0.4rem 1rem; border-radius: 20px; font-weight: 700; font-size: 0.85rem;">
+          En attente d'association...
+        </span>
+      </div>
+
+      <!-- Écran DEMANDE D'ASSOCIATION EN ATTENTE DE VALIDATION ADMIN -->
+      <div id="boothPendingView" class="card kiosk-lock-overlay">
+        <div class="lock-icon"><i class="fa-solid fa-spinner fa-spin" style="color: #FFD166;"></i></div>
+        <h2 style="font-size: 2.2rem; font-weight: 900; margin-bottom: 0.75rem;">Demande d'Association Envoyée</h2>
+        <p style="color: var(--text-sub); max-width: 550px; margin: 0 auto 1.5rem auto; font-size: 1.1rem; line-height: 1.5;">
+          En attente de validation par l'administrateur... L'Admin doit cliquer sur <strong>[ ACCEPTER ]</strong> sur son tableau de bord.
+        </p>
+        <div style="display: inline-block; padding: 0.6rem 1.2rem; background: var(--input-bg); border-radius: 30px; font-weight: 700; font-size: 0.95rem;">
+          <i class="fa-solid fa-handshake" style="color: #FFD166;"></i> Handshake Sécurisé en Cours...
+        </div>
+      </div>
+
+      <!-- Écran DEMANDE REFUSÉE -->
+      <div id="boothRejectedView" class="card kiosk-lock-overlay" style="display: none;">
+        <div class="lock-icon"><i class="fa-solid fa-ban" style="color: var(--status-disqualified);"></i></div>
+        <h2 style="font-size: 2.2rem; font-weight: 900; margin-bottom: 0.75rem; color: var(--status-disqualified);">Demande d'Association Refusée</h2>
+        <p style="color: var(--text-sub); max-width: 550px; margin: 0 auto 1.5rem auto; font-size: 1.1rem;">
+          L'administrateur a refusé la connexion de cet appareil. Cet appareil n'est pas autorisé à servir d'isoloir.
+        </p>
+        <button class="btn btn-outline" onclick="location.reload()"><i class="fa-solid fa-rotate"></i> Réessayer</button>
+      </div>
+
+      <!-- Écran si Isoloir Verrouillé (Étape 1 & Étape 3) -->
+      <div id="boothLockedView" class="card kiosk-lock-overlay" style="display: none;">
+        <div class="lock-icon"><i class="fa-solid fa-lock" style="color: #FFD166;"></i></div>
+        <h2 style="font-size: 2.2rem; font-weight: 900; margin-bottom: 0.75rem;">Isoloir Verrouillé</h2>
+        <p style="color: var(--text-sub); max-width: 550px; margin: 0 auto 1.5rem auto; font-size: 1.1rem; line-height: 1.5;">
+          L'appareil est **validé**. L'Admin doit cliquer sur <strong>"Déverrouiller Cet Isoloir"</strong> pour autoriser votre vote.
+        </p>
+        <div style="display: inline-block; padding: 0.6rem 1.2rem; background: var(--input-bg); border-radius: 30px; font-weight: 700; font-size: 0.95rem;">
+          <i class="fa-solid fa-wifi" style="color: #06D6A0;"></i> Signal Temps Réel en attente de l'Admin...
+        </div>
+      </div>
+
+      <!-- Écran de Vote Déverrouillé (Étape 2) -->
+      <div id="boothActiveView" class="card" style="display: none;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+          <span style="background: rgba(6, 214, 160, 0.2); color: #06D6A0; padding: 0.5rem 1.2rem; border-radius: 20px; font-weight: 800; font-size: 0.95rem;">
+            <i class="fa-solid fa-lock-open"></i> ISOLOIR DÉVERROUILLÉ PAR L'ADMINISTRATEUR
+          </span>
+          <h2 style="font-size: 2rem; font-weight: 900; margin-top: 1rem;">Cliquez sur votre candidat pour voter</h2>
+          <p style="color: var(--text-sub);">Votre choix est strictement anonyme. Dès votre clic, l'isoloir se verrouille pour l'électeur suivant.</p>
+        </div>
+
+        <div id="voterCandidatesGrid" class="grid-2">
+          <!-- Cartes candidats réels -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. CÉRÉMONIE DES RÉSULTATS (10S) -->
+    <div id="countdownModal" class="countdown-overlay" style="display: none;">
+      <i class="fa-solid fa-trophy" style="font-size: 4rem; color: #FFD166; margin-bottom: 1rem;"></i>
+      <h2 style="color: var(--accent-white); font-size: 2.2rem; font-weight: 800; text-align: center; margin-bottom: 0.5rem;">
+        Clôture du Scrutin
+      </h2>
+      <p style="color: var(--text-muted); font-size: 1.2rem; margin-bottom: 2rem;">
+        Dépouillement des données réelles PostgreSQL dans...
+      </p>
+      <div id="countdownTimer" class="countdown-number">10</div>
+    </div>
+
+    <!-- Écran Résultats -->
+    <section id="resultsSection" class="card" style="display: none;">
+      <div style="text-align: center; margin-bottom: 2rem;">
+        <i class="fa-solid fa-award" style="font-size: 3.5rem; color: #FFD166; margin-bottom: 0.5rem;"></i>
+        <h2 style="font-size: 2.2rem; font-weight: 900;">Résultats Officiels du Scrutin</h2>
+        <p style="color: var(--text-sub);">Données certifiées extraites de PostgreSQL</p>
+      </div>
+
+      <div id="resultsListContainer">
+        <!-- Rempli dynamiquement -->
+      </div>
+    </section>
+
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
